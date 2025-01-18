@@ -1,0 +1,24 @@
+# Ignore everything
+*
+
+# But not these files...
+!/.gitignore
+!.air.toml
+!http/*.http
+
+!*.go
+!go.sum
+!go.mod
+!sqlc.yaml
+!migrations/*
+
+!internal/database/queries/*.sql
+
+
+!README.md
+!LICENSE
+
+# !Makefile
+
+# ...even if they are in subdirectories
+!*/
