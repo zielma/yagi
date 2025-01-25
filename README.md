@@ -1,11 +1,11 @@
 # TODO
 
 ## Frontend
-- [ ] possibility to map budget/account and gocardless account
+- [ ] Possibility to map budget/account and gocardless account
 
 ## Backend
 - [x] Read API keys from environment.
-- [ ] Job schedule persistance to database. 
+- [ ] Persistent job schedule in database. 
 
 ### YNAB
 - [ ] Fetch budgets
