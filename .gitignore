@@ -5,6 +5,7 @@
 !/.gitignore
 !.air.toml
 !http/*.http
+!.github/workflows/ci.yml
 
 !*.go
 !go.sum
