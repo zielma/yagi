@@ -59,7 +59,11 @@ func main() {
 
 			wr.Header().Set("Content-Type", "text/html")
 
-			tmpl.ExecuteTemplate(wr, "index.page.tmpl", nil)
+			err = tmpl.ExecuteTemplate(wr, "index.page.tmpl", nil)
+			if err != nil {
+				http.Error(wr, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		})
 	})
 
