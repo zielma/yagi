@@ -19,7 +19,7 @@ type Scheduler struct {
 	scheduler gocron.Scheduler
 }
 
-type job struct {
+type _ struct {
 	Id        string
 	Type      string
 	NextRunAt time.Time
