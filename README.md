@@ -1,3 +1,7 @@
+# YAGI
+
+[![codecov](https://codecov.io/gh/zielma/yagi/branch/main/graph/badge.svg)](https://codecov.io/gh/zielma/yagi)
+
 # TODO
 
 ## Frontend
@@ -17,3 +21,4 @@
 ### GoCardless
 - [ ] Fetch accounts
 - [ ] Handle API rate limitation based on [this](https://developer.gocardless.com/bank-account-data/overview)
+
