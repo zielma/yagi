@@ -1,6 +1,5 @@
 # YAGI
-
-[![codecov](https://codecov.io/gh/zielma/yagi/branch/main/graph/badge.svg)](https://codecov.io/gh/zielma/yagi)
+![build](https://github.com/zielma/yagi/actions/workflows/ci.yml/badge.svg) [![codecov](https://codecov.io/gh/zielma/yagi/branch/main/graph/badge.svg)](https://codecov.io/gh/zielma/yagi)
 
 # TODO
 
