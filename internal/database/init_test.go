@@ -7,7 +7,7 @@ import (
 )
 
 func TestInitialize(t *testing.T) {
-
+	// Initial setup for testing
 	testDataFolder := "data_test"
 	testMigrationsFolder := "migrations_test"
 
@@ -29,14 +29,20 @@ func TestInitialize(t *testing.T) {
 	})
 
 	t.Run("invalid migrations folder", func(t *testing.T) {
+		// Act
 		_, err := initialize(dataFolder, dbFileName, "invalid_folder")
+
+		// Assert
 		if err == nil {
 			t.Fatal("Expected error, got nil")
 		}
 	})
 
 	t.Run("successful initialization", func(t *testing.T) {
+		// Act
 		db, err := Initialize()
+
+		//Assert
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
@@ -45,7 +51,6 @@ func TestInitialize(t *testing.T) {
 		}
 		defer db.Close()
 
-		// Verify database is working by performing a simple query
 		var result int
 		err = db.QueryRow("SELECT 1").Scan(&result)
 		if err != nil {
