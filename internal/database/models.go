@@ -23,11 +23,12 @@ type Budget struct {
 }
 
 type Job struct {
-	ID        string
-	Type      string
-	Status    string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID             string
+	Type           string
+	Status         string
+	CronExpression string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type Setting struct {
