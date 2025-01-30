@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -12,12 +13,28 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+const (
+	dataFolder       = "data"
+	dbFileName       = "yagi.sqlite3"
+	migrationsFolder = "migrations"
+)
+
 func Initialize() (*sql.DB, error) {
-	if err := os.MkdirAll(".yagi", 0755); err != nil {
+	db, err := initialize(dataFolder, dbFileName, migrationsFolder)
+	if err != nil {
 		return nil, err
 	}
+	return db, nil
+}
 
-	db, err := sql.Open("sqlite", "file:.yagi/yagi.db")
+func initialize(dataFolder string, dbFileName string, migrationsFolder string) (*sql.DB, error) {
+	if _, err := os.Stat(dataFolder); os.IsNotExist(err) {
+		if err := os.Mkdir(dataFolder, 0755); err != nil {
+			return nil, err
+		}
+	}
+
+	db, err := sql.Open("sqlite", fmt.Sprintf("file:%s/%s", dataFolder, dbFileName))
 	if err != nil {
 		slog.Debug("failed to open database", "error", err)
 		return nil, err
@@ -30,7 +47,7 @@ func Initialize() (*sql.DB, error) {
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations",
+		fmt.Sprintf("file://%s", migrationsFolder),
 		"yagi",
 		driver,
 	)
@@ -41,7 +58,7 @@ func Initialize() (*sql.DB, error) {
 	}
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		slog.Debug("failed to run migrations", "error", err)
+		slog.Debug("failed to run up migrations", "error", err)
 		return nil, err
 	}
 
