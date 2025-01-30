@@ -14,6 +14,7 @@
 !migrations/*
 
 !internal/database/queries/*.sql
+!internal/database/migrations/*.sql
 
 
 !README.md
