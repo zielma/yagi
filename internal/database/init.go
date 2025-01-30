@@ -29,11 +29,13 @@ func Initialize() (*sql.DB, error) {
 
 func initialize(dataFolder string, dbFileName string, migrationsFolder string) (*sql.DB, error) {
 	if _, err := os.Stat(dataFolder); os.IsNotExist(err) {
+		slog.Debug("data folder does not exist, creating it", "dataFolder", dataFolder)
 		if err := os.Mkdir(dataFolder, 0755); err != nil {
 			return nil, err
 		}
 	}
 
+	slog.Debug("initializing database", "dataFolder", dataFolder, "dbFileName", dbFileName)
 	db, err := sql.Open("sqlite", fmt.Sprintf("file:%s/%s", dataFolder, dbFileName))
 	if err != nil {
 		slog.Debug("failed to open database", "error", err)
@@ -57,6 +59,7 @@ func initialize(dataFolder string, dbFileName string, migrationsFolder string) (
 		return nil, err
 	}
 
+	slog.Debug("running up migrations", "migrationsFolder", migrationsFolder)
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		slog.Debug("failed to run up migrations", "error", err)
 		return nil, err
