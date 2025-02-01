@@ -6,12 +6,13 @@ import (
 	"log/slog"
 
 	"github.com/zielma/yagi/internal/database"
+	"github.com/zielma/yagi/internal/scheduler"
 	"github.com/zielma/yagi/internal/ynab"
 )
 
-func (s *Runner) syncBudgets() error {
+func syncBudgets(r *scheduler.JobRunner) error {
 	slog.Debug("syncing budgets")
-	client := ynab.NewClient(s.cfg)
+	client := ynab.NewClient(r.Config)
 	response, err := client.GetBudgets(true)
 	if err != nil {
 		slog.Debug("failed to get budgets", "error", err)
@@ -19,7 +20,7 @@ func (s *Runner) syncBudgets() error {
 	}
 
 	for _, budget := range response.Budgets {
-		existing, err := s.dbQueries.GetBudget(context.Background(), budget.Id)
+		existing, err := r.Database.GetBudget(context.Background(), budget.Id)
 		if err != nil && err != sql.ErrNoRows {
 			slog.Debug("failed to get budget", "error", err)
 			return err
@@ -29,7 +30,7 @@ func (s *Runner) syncBudgets() error {
 			continue
 		}
 
-		if err := s.dbQueries.CreateBudget(context.Background(), database.CreateBudgetParams{
+		if err := r.Database.CreateBudget(context.Background(), database.CreateBudgetParams{
 			ID:   budget.Id,
 			Name: budget.Name,
 		}); err != nil {
@@ -39,7 +40,7 @@ func (s *Runner) syncBudgets() error {
 	}
 
 	for _, account := range response.Accounts {
-		existing, err := s.dbQueries.GetAccount(context.Background(), account.Id)
+		existing, err := r.Database.GetAccount(context.Background(), account.Id)
 		if err != nil && err != sql.ErrNoRows {
 			slog.Debug("failed to get account", "error", err)
 			return err
@@ -49,7 +50,7 @@ func (s *Runner) syncBudgets() error {
 			continue
 		}
 
-		if err := s.dbQueries.CreateAccount(context.Background(), database.CreateAccountParams{
+		if err := r.Database.CreateAccount(context.Background(), database.CreateAccountParams{
 			ID:       account.Id,
 			Name:     account.Name,
 			BudgetID: account.BudgetID,

@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/zielma/yagi/internal/config"
 	"github.com/zielma/yagi/internal/database"
-	"github.com/zielma/yagi/internal/scheduler/jobs"
 )
 
 type dbQueries interface {
@@ -22,7 +21,7 @@ type Scheduler struct {
 	dbQueries dbQueries
 	cfg       *config.Config
 	scheduler gocron.Scheduler
-	jobRunner *jobs.Runner
+	jobRunner *JobRunner
 }
 
 type _ struct {
@@ -38,13 +37,24 @@ func (s *Scheduler) Shutdown() {
 	_ = s.scheduler.Shutdown()
 }
 
-func (s *Scheduler) Reload() {
-	s.scheduler.StopJobs()
-	for _, j := range s.scheduler.Jobs() {
-		s.scheduler.RemoveJob(j.ID())
+func (s *Scheduler) Reload() error {
+	err := s.scheduler.StopJobs()
+	if err != nil {
+		return fmt.Errorf("failed to stop jobs: %w", err)
 	}
 
-	s.Load()
+	for _, j := range s.scheduler.Jobs() {
+		err := s.scheduler.RemoveJob(j.ID())
+		if err != nil {
+			return fmt.Errorf("failed to remove job: %w", err)
+		}
+	}
+
+	if err := s.Load(); err != nil {
+		return fmt.Errorf("failed to load jobs: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Scheduler) Load() error {
@@ -61,7 +71,7 @@ func (s *Scheduler) Load() error {
 		slog.Info("found job", "job_type", job.Type, "job_cron_expression", job.CronExpression)
 		scheduledJob, err := s.scheduler.NewJob(
 			gocron.CronJob(job.CronExpression, false),
-			gocron.NewTask(s.jobRunner.GetJobFunc(job.Type)),
+			gocron.NewTask(getJobFunc(job.Type), s.jobRunner),
 			gocron.WithEventListeners(
 				gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, joberr error) {
 					slog.Error("job failed", "job_id", jobID, "job_name", jobName, "error", joberr)
@@ -84,12 +94,12 @@ func (s *Scheduler) Load() error {
 
 	return nil
 }
-func New(db *sql.DB, cfg *config.Config) *Scheduler {
+func New(db *sql.DB, cfg *config.Config) (*Scheduler, error) {
 	dbQueries := database.New(db)
 	s := Scheduler{
 		dbQueries: dbQueries,
 		cfg:       cfg,
-		jobRunner: jobs.NewRunner(dbQueries, cfg)}
+		jobRunner: NewJobRunner(dbQueries, cfg)}
 
 	var err error
 	s.scheduler, err = gocron.NewScheduler(
@@ -98,12 +108,14 @@ func New(db *sql.DB, cfg *config.Config) *Scheduler {
 	)
 
 	if err != nil {
-		slog.Error("failed to create scheduler", "error", err)
-		return nil
+		return nil, fmt.Errorf("failed to create scheduler: %w", err)
 	}
 
-	s.Load()
-	s.scheduler.Start()
+	if err := s.Load(); err != nil {
+		slog.Error("failed to load jobs", "error", err)
+		return nil, fmt.Errorf("failed to load jobs: %w", err)
+	}
 
-	return &s
+	s.scheduler.Start()
+	return &s, nil
 }
