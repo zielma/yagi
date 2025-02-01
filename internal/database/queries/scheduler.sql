@@ -3,6 +3,7 @@ SELECT id
  ,type
  ,status
  ,cron_expression
+ ,params
 FROM jobs;
 
 -- name: UpdateJobCronExpression :exec

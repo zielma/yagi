@@ -16,14 +16,19 @@ func (m mockDBQueries) GetJobs(ctx context.Context) ([]database.GetJobsRow, erro
 	return []database.GetJobsRow{
 		{
 			ID:             "1",
-			Type:           "syncBudgets",
+			Type:           "testFunc",
 			CronExpression: "5 4 * * *",
 			Status:         "active",
+			Params:         "[\"test\"]",
 		},
 	}, nil
 }
 
 func TestScheduler(t *testing.T) {
+	RegisterJob("testFunc", func(r *JobRunner, a string) error {
+		return nil
+	})
+
 	s, err := gocron.NewScheduler(
 		gocron.WithLocation(time.UTC),
 		gocron.WithLogger(gocron.NewLogger(gocron.LogLevelDebug)),
@@ -41,7 +46,14 @@ func TestScheduler(t *testing.T) {
 
 		err := s.Load()
 		if err != nil {
-			t.Fatal("could not load jobs from database", err)
+			t.Fatalf("load should not return error, err: %s", err)
+		}
+
+		jobs := s.scheduler.Jobs()
+		for _, job := range jobs {
+			if job.Name() != "testFunc" {
+				t.Fatalf("job name expected to be testFunc, got: %s", job.Name())
+			}
 		}
 	})
 }

@@ -26,6 +26,7 @@ type Job struct {
 	ID             string
 	Type           string
 	Status         string
+	Params         string
 	CronExpression string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time

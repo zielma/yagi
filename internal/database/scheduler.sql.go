@@ -14,6 +14,7 @@ SELECT id
  ,type
  ,status
  ,cron_expression
+ ,params
 FROM jobs
 `
 
@@ -22,6 +23,7 @@ type GetJobsRow struct {
 	Type           string
 	Status         string
 	CronExpression string
+	Params         string
 }
 
 func (q *Queries) GetJobs(ctx context.Context) ([]GetJobsRow, error) {
@@ -38,6 +40,7 @@ func (q *Queries) GetJobs(ctx context.Context) ([]GetJobsRow, error) {
 			&i.Type,
 			&i.Status,
 			&i.CronExpression,
+			&i.Params,
 		); err != nil {
 			return nil, err
 		}

@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -68,10 +69,19 @@ func (s *Scheduler) Load() error {
 	}
 
 	for _, job := range jobs {
-		slog.Info("found job", "job_type", job.Type, "job_cron_expression", job.CronExpression)
+		slog.Debug("found job", "job_type", job.Type, "job_cron_expression", job.CronExpression, "job_params", job.Params)
+		// decode job parameters to slice, position of arguments matters
+		jsonParams := []any{}
+		if err := json.Unmarshal([]byte(job.Params), &jsonParams); err != nil {
+			return fmt.Errorf("failed to unmarshal job params[%s]: %w", job.Params, err)
+		}
+
+		// add job to the scheduler
+		taskParams := append([]any{s.jobRunner}, jsonParams...)
 		scheduledJob, err := s.scheduler.NewJob(
 			gocron.CronJob(job.CronExpression, false),
-			gocron.NewTask(getJobFunc(job.Type), s.jobRunner),
+			gocron.NewTask(getJobFunc(job.Type), taskParams...),
+			gocron.WithName(job.Type),
 			gocron.WithEventListeners(
 				gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, joberr error) {
 					slog.Error("job failed", "job_id", jobID, "job_name", jobName, "error", joberr)
@@ -82,6 +92,7 @@ func (s *Scheduler) Load() error {
 			return fmt.Errorf("failed to create new job: %w", err)
 		}
 
+		// get next 3 run times and log them
 		nextRuns, err := scheduledJob.NextRuns(3)
 		if err != nil {
 			return fmt.Errorf("failed to get next runs: %w", err)

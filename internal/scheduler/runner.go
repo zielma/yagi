@@ -10,14 +10,14 @@ import (
 
 type RunnerJobFunc func(r *JobRunner) error
 
-var jobRunners = make(map[string]RunnerJobFunc)
+var jobRunners = make(map[string]any)
 var jobsMutex sync.RWMutex
 
-func RegisterJob(jobType string, jobFunc RunnerJobFunc) {
+func RegisterJob(jobType string, function any) {
 	jobsMutex.Lock()
 	defer jobsMutex.Unlock()
 
-	if jobFunc == nil {
+	if function == nil {
 		panic("job function cannot be nil")
 	}
 
@@ -25,10 +25,10 @@ func RegisterJob(jobType string, jobFunc RunnerJobFunc) {
 		panic("job type already registered: " + jobType)
 	}
 
-	jobRunners[jobType] = jobFunc
+	jobRunners[jobType] = function
 }
 
-func getJobFunc(jobType string) RunnerJobFunc {
+func getJobFunc(jobType string) any {
 	jobsMutex.RLock()
 	defer jobsMutex.RUnlock()
 
@@ -37,7 +37,7 @@ func getJobFunc(jobType string) RunnerJobFunc {
 	}
 
 	slog.Error("unknown job type", "job_type", jobType)
-	return func(_ *JobRunner) error { return nil }
+	return func() error { return nil }
 }
 
 type JobRunner struct {
