@@ -115,7 +115,7 @@ func TestJobReturningAnError(t *testing.T) {
 		t.Fatal("job should have finished")
 	case jobRun := <-ch:
 		if !jobRun {
-			t.Fatalf("job should run as return bool through channel, want: %t, got: %t", true, jobRun)
+			t.Fatalf("job should run and return bool through channel, want: %t, got: %t", true, jobRun)
 		}
 	}
 }

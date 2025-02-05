@@ -20,7 +20,7 @@ func TestBasicRouting(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if !called {
-		t.Error("Handler was not called")
+		t.Error("handler was not called")
 	}
 }
 
@@ -33,7 +33,7 @@ func TestMethodNotAllowed(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusMethodNotAllowed {
-		t.Errorf("Expected status code %d, got %d", http.StatusMethodNotAllowed, w.Code)
+		t.Errorf("status code, want: %d, got: %d", http.StatusMethodNotAllowed, w.Code)
 	}
 }
 
@@ -58,10 +58,10 @@ func TestMiddleware(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if !middlewareCalled {
-		t.Error("Middleware was not called")
+		t.Error("middleware was not called")
 	}
 	if !handlerCalled {
-		t.Error("Handler was not called")
+		t.Error("handler was not called")
 	}
 }
 
@@ -89,10 +89,10 @@ func TestGroup(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if !middlewareCalled {
-		t.Error("Group middleware was not called")
+		t.Error("group middleware was not called")
 	}
 	if !groupCalled {
-		t.Error("Group handler was not called")
+		t.Error("group handler was not called")
 	}
 }
 
@@ -126,7 +126,7 @@ func TestMultipleMiddleware(t *testing.T) {
 
 	expected := []string{"m1", "m2", "handler"}
 	if !slices.Equal(order, expected) {
-		t.Errorf("Incorrect middleware execution order, want: %v, got: %v", expected, order)
+		t.Errorf("incorrect middleware execution order, want: %#v, got: %#v", expected, order)
 	}
 }
 
@@ -159,7 +159,7 @@ func TestAllHttpMethods(t *testing.T) {
 			r.ServeHTTP(w, req)
 
 			if !called {
-				t.Errorf("%s handler was not called", tt.method)
+				t.Errorf("handler[%s] was not called", tt.method)
 			}
 		})
 	}
