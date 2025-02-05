@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -76,11 +77,16 @@ func (s *Scheduler) Load() error {
 			return fmt.Errorf("failed to unmarshal job params[%s]: %w", job.Params, err)
 		}
 
+		jobFunc, err := getJobFunc(job.Type)
+		if err != nil && errors.Is(err, ErrUnknownJobType) {
+			return fmt.Errorf("getJobFunc[%s]: %w", job.Type, err)
+		}
+
 		// add job to the scheduler
 		taskParams := append([]any{s.jobRunner}, jsonParams...)
 		scheduledJob, err := s.scheduler.NewJob(
 			gocron.CronJob(job.CronExpression, false),
-			gocron.NewTask(getJobFunc(job.Type), taskParams...),
+			gocron.NewTask(jobFunc, taskParams...),
 			gocron.WithName(job.Type),
 			gocron.WithEventListeners(
 				gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, joberr error) {

@@ -1,11 +1,15 @@
 package scheduler
 
 import (
-	"log/slog"
+	"errors"
 	"sync"
 
 	"github.com/zielma/yagi/internal/config"
 	"github.com/zielma/yagi/internal/database"
+)
+
+var (
+	ErrUnknownJobType = errors.New("unknown job type")
 )
 
 type RunnerJobFunc func(r *JobRunner) error
@@ -28,16 +32,15 @@ func RegisterJob(jobType string, function any) {
 	jobRunners[jobType] = function
 }
 
-func getJobFunc(jobType string) any {
+func getJobFunc(jobType string) (any, error) {
 	jobsMutex.RLock()
 	defer jobsMutex.RUnlock()
 
 	if jobFunc, ok := jobRunners[jobType]; ok {
-		return jobFunc
+		return jobFunc, nil
 	}
 
-	slog.Error("unknown job type", "job_type", jobType)
-	return func() error { return nil }
+	return nil, ErrUnknownJobType
 }
 
 type JobRunner struct {

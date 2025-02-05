@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestRouter_BasicRouting(t *testing.T) {
+func TestBasicRouting(t *testing.T) {
 	r := NewRouter()
 	called := false
 
@@ -24,7 +24,7 @@ func TestRouter_BasicRouting(t *testing.T) {
 	}
 }
 
-func TestRouter_MethodNotAllowed(t *testing.T) {
+func TestMethodNotAllowed(t *testing.T) {
 	r := NewRouter()
 	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {})
 
@@ -37,7 +37,7 @@ func TestRouter_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-func TestRouter_Middleware(t *testing.T) {
+func TestMiddleware(t *testing.T) {
 	middlewareCalled := false
 	middleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +65,7 @@ func TestRouter_Middleware(t *testing.T) {
 	}
 }
 
-func TestRouter_Group(t *testing.T) {
+func TestGroup(t *testing.T) {
 	r := NewRouter()
 	groupCalled := false
 	middlewareCalled := false
@@ -96,7 +96,7 @@ func TestRouter_Group(t *testing.T) {
 	}
 }
 
-func TestRouter_MultipleMiddleware(t *testing.T) {
+func TestMultipleMiddleware(t *testing.T) {
 	order := []string{}
 
 	middleware1 := func(next http.Handler) http.Handler {
@@ -126,11 +126,11 @@ func TestRouter_MultipleMiddleware(t *testing.T) {
 
 	expected := []string{"m1", "m2", "handler"}
 	if !slices.Equal(order, expected) {
-		t.Errorf("Expected middleware execution order %v, got %v", expected, order)
+		t.Errorf("Incorrect middleware execution order, want: %v, got: %v", expected, order)
 	}
 }
 
-func TestRouter_AllMethods(t *testing.T) {
+func TestAllHttpMethods(t *testing.T) {
 
 	r := NewRouter()
 	tests := []struct {
