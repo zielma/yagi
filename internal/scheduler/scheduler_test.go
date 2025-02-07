@@ -91,7 +91,7 @@ func TestJobReturningAnError(t *testing.T) {
 
 	jobs := s.scheduler.Jobs()
 	s.scheduler.Start()
-	defer s.scheduler.Shutdown()
+	defer func() { _ = s.scheduler.Shutdown() }()
 
 	if !slices.ContainsFunc(jobs, func(j gocron.Job) bool {
 		return j.Name() == "errorFunc"

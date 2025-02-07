@@ -22,6 +22,10 @@ func TestBasicRouting(t *testing.T) {
 	if !called {
 		t.Error("handler was not called")
 	}
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status code, want: %d, got: %d", http.StatusOK, w.Code)
+	}
 }
 
 func TestMethodNotAllowed(t *testing.T) {
@@ -51,6 +55,9 @@ func TestMiddleware(t *testing.T) {
 
 	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
 		handlerCalled = true
+		if _, err := w.Write([]byte("hello")); err != nil {
+			t.Errorf("failed to write response: %v", err)
+		}
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -62,6 +69,10 @@ func TestMiddleware(t *testing.T) {
 	}
 	if !handlerCalled {
 		t.Error("handler was not called")
+	}
+
+	if w.Body.String() != "hello" {
+		t.Errorf("response body, want: %s, got: %s", "hello", w.Body.String())
 	}
 }
 
