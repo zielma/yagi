@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/zielma/yagi/internal/config"
@@ -17,19 +18,20 @@ type RunnerJobFunc func(r *JobRunner) error
 var jobRunners = make(map[string]any)
 var jobsMutex sync.RWMutex
 
-func RegisterJob(jobType string, function any) {
+func RegisterJob(jobType string, function any) error {
+	if function == nil {
+		return fmt.Errorf("job function cannot be nil")
+	}
+
 	jobsMutex.Lock()
 	defer jobsMutex.Unlock()
 
-	if function == nil {
-		panic("job function cannot be nil")
-	}
-
-	if _, dup := jobRunners[jobType]; dup {
-		panic("job type already registered: " + jobType)
+	if _, exist := jobRunners[jobType]; exist {
+		return fmt.Errorf("job type already registered: %s", jobType)
 	}
 
 	jobRunners[jobType] = function
+	return nil
 }
 
 func getJobFunc(jobType string) (any, error) {

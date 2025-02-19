@@ -5,6 +5,7 @@
 package database
 
 import (
+	"database/sql"
 	"time"
 )
 
@@ -23,10 +24,8 @@ type Budget struct {
 }
 
 type Job struct {
-	ID             string
 	Type           string
-	Status         string
-	Params         string
+	Params         sql.NullString
 	CronExpression string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time

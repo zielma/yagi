@@ -7,12 +7,12 @@ watch:
 	air
 
 test:
-	go test ./... 
+	go test -race ./... 
 
 test-verbose:
 	go test ./... -v
 
 cover:
-	go test ./... -coverprofile=c.out
+	go test -race ./... -coverprofile=c.out
 	go tool cover -html=c.out
 

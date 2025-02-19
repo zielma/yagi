@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"slices"
 	"testing"
@@ -42,11 +43,9 @@ func TestLoadWithRegisteredJob(t *testing.T) {
 	db.GetJobsFunc = func(context.Context) ([]database.GetJobsRow, error) {
 		return []database.GetJobsRow{
 			{
-				ID:             "1",
 				Type:           "testFunc",
 				CronExpression: "5 4 * * *",
-				Status:         "active",
-				Params:         "[\"test\"]",
+				Params:         sql.NullString{String: "[\"test\"]", Valid: true},
 			},
 		}, nil
 	}
@@ -66,20 +65,20 @@ func TestLoadWithRegisteredJob(t *testing.T) {
 
 func TestJobReturningAnError(t *testing.T) {
 	ch := make(chan bool)
-	RegisterJob("errorFunc", func(r *JobRunner, a string) error {
+	if err := RegisterJob("errorFunc", func(r *JobRunner, a string) error {
 		ch <- true
 		return errors.New("error from the job")
-	})
+	}); err != nil {
+		t.Fatal("register job should not return error")
+	}
 
 	s, db := setupLoad(t)
 	db.GetJobsFunc = func(context.Context) ([]database.GetJobsRow, error) {
 		return []database.GetJobsRow{
 			{
-				ID:             "1",
 				Type:           "errorFunc",
 				CronExpression: "5 4 * * *",
-				Status:         "active",
-				Params:         "[\"test\"]",
+				Params:         sql.NullString{String: "[\"test\"]", Valid: true},
 			},
 		}, nil
 	}
@@ -125,11 +124,9 @@ func TestLoadWithoutRegisteredJob(t *testing.T) {
 	db.GetJobsFunc = func(context.Context) ([]database.GetJobsRow, error) {
 		return []database.GetJobsRow{
 			{
-				ID:             "1",
 				Type:           "unknownFunc",
 				CronExpression: "5 4 * * *",
-				Status:         "active",
-				Params:         "[\"test\"]",
+				Params:         sql.NullString{String: "[\"test\"]", Valid: true},
 			},
 		}, nil
 	}
@@ -145,11 +142,9 @@ func TestLoadWithInvalidCronExpression(t *testing.T) {
 	db.GetJobsFunc = func(context.Context) ([]database.GetJobsRow, error) {
 		return []database.GetJobsRow{
 			{
-				ID:             "1",
 				Type:           "testFunc",
 				CronExpression: "invalid",
-				Status:         "active",
-				Params:         "[\"test\"]",
+				Params:         sql.NullString{String: "[\"test\"]", Valid: true},
 			},
 		}, nil
 	}
@@ -161,6 +156,44 @@ func TestLoadWithInvalidCronExpression(t *testing.T) {
 
 	if !errors.Is(err, gocron.ErrCronJobParse) {
 		t.Fatalf("load should return ErrCronJobParse when cron expression is invalid, got: %s", err)
+	}
+}
+
+func TestNewWithoutDb(t *testing.T) {
+	_, err := New(nil, &config.Config{})
+	if err == nil {
+		t.Fatal("new should return error when db is nil")
+	}
+}
+
+func TestNewWithoutConfig(t *testing.T) {
+	_, err := New(&sql.DB{}, nil)
+	if err == nil {
+		t.Fatal("new should return error when config is nil")
+	}
+}
+
+func TestNew(t *testing.T) {
+	s, err := New(&sql.DB{}, &config.Config{})
+
+	if s == nil {
+		t.Fatal("new should return a scheduler")
+	}
+	if err != nil {
+		t.Fatal("new should not return error")
+	}
+
+	if s.scheduler == nil {
+		t.Fatal("new should return a scheduler with a gocron scheduler")
+	}
+	if s.dbQueries == nil {
+		t.Fatal("new should return a scheduler with a dbQueries")
+	}
+	if s.jobRunner == nil {
+		t.Fatal("new should return a scheduler with a jobRunner")
+	}
+	if s.cfg == nil {
+		t.Fatal("new should return a scheduler with a config")
 	}
 }
 

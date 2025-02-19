@@ -7,23 +7,20 @@ package database
 
 import (
 	"context"
+	"database/sql"
 )
 
 const getJobs = `-- name: GetJobs :many
-SELECT id
- ,type
- ,status
+SELECT type
  ,cron_expression
  ,params
 FROM jobs
 `
 
 type GetJobsRow struct {
-	ID             string
 	Type           string
-	Status         string
 	CronExpression string
-	Params         string
+	Params         sql.NullString
 }
 
 func (q *Queries) GetJobs(ctx context.Context) ([]GetJobsRow, error) {
@@ -35,13 +32,7 @@ func (q *Queries) GetJobs(ctx context.Context) ([]GetJobsRow, error) {
 	var items []GetJobsRow
 	for rows.Next() {
 		var i GetJobsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Type,
-			&i.Status,
-			&i.CronExpression,
-			&i.Params,
-		); err != nil {
+		if err := rows.Scan(&i.Type, &i.CronExpression, &i.Params); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -59,15 +50,15 @@ const updateJobCronExpression = `-- name: UpdateJobCronExpression :exec
 UPDATE jobs 
 SET cron_expression = ?
     ,updated_at = datetime('now')
-WHERE id = ?
+WHERE type = ?
 `
 
 type UpdateJobCronExpressionParams struct {
 	CronExpression string
-	ID             string
+	Type           string
 }
 
 func (q *Queries) UpdateJobCronExpression(ctx context.Context, arg UpdateJobCronExpressionParams) error {
-	_, err := q.db.ExecContext(ctx, updateJobCronExpression, arg.CronExpression, arg.ID)
+	_, err := q.db.ExecContext(ctx, updateJobCronExpression, arg.CronExpression, arg.Type)
 	return err
 }

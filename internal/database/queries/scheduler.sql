@@ -1,7 +1,5 @@
 -- name: GetJobs :many
-SELECT id
- ,type
- ,status
+SELECT type
  ,cron_expression
  ,params
 FROM jobs;
@@ -10,4 +8,4 @@ FROM jobs;
 UPDATE jobs 
 SET cron_expression = ?
     ,updated_at = datetime('now')
-WHERE id = ?;
+WHERE type = ?;

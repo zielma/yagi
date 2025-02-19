@@ -52,8 +52,6 @@ func syncBudgets(r *scheduler.JobRunner) error {
 			Name:     account.Name,
 			BudgetID: account.BudgetID,
 			Closed:   account.Closed,
-			Balance:  account.Balance,
-			Cleared:  account.Cleared,
 		}); err != nil {
 			return fmt.Errorf("failed to create account[id:%s][name:%s]: %w", account.Id, account.Name, err)
 		}

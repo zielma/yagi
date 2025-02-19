@@ -18,11 +18,12 @@ CREATE TABLE IF NOT EXISTS accounts (
 ); 
 
 CREATE TABLE IF NOT EXISTS jobs (
-    id TEXT PRIMARY KEY,
     type TEXT NOT NULL,
-    status TEXT NOT NULL,
-    params TEXT NOT NULL,
+    params TEXT,
     cron_expression TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ); 
+
+INSERT INTO jobs (type, params, cron_expression)
+VALUES ('syncBudgets', null, '0 * * * *');

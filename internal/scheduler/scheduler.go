@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
@@ -39,24 +40,8 @@ func (s *Scheduler) Shutdown() {
 	_ = s.scheduler.Shutdown()
 }
 
-func (s *Scheduler) Reload() error {
-	err := s.scheduler.StopJobs()
-	if err != nil {
-		return fmt.Errorf("failed to stop jobs: %w", err)
-	}
-
-	for _, j := range s.scheduler.Jobs() {
-		err := s.scheduler.RemoveJob(j.ID())
-		if err != nil {
-			return fmt.Errorf("failed to remove job: %w", err)
-		}
-	}
-
-	if err := s.Load(); err != nil {
-		return fmt.Errorf("failed to load jobs: %w", err)
-	}
-
-	return nil
+func (s *Scheduler) Start() {
+	s.scheduler.Start()
 }
 
 func (s *Scheduler) Load() error {
@@ -73,8 +58,10 @@ func (s *Scheduler) Load() error {
 		slog.Debug("found job", "job_type", job.Type, "job_cron_expression", job.CronExpression, "job_params", job.Params)
 		// decode job parameters to slice, position of arguments matters
 		jsonParams := []any{}
-		if err := json.Unmarshal([]byte(job.Params), &jsonParams); err != nil {
-			return fmt.Errorf("failed to unmarshal job params[%s]: %w", job.Params, err)
+		if job.Params.Valid {
+			if err := json.NewDecoder(strings.NewReader(job.Params.String)).Decode(&jsonParams); err != nil {
+				return fmt.Errorf("failed to decode job params[%s]: %w", job.Params.String, err)
+			}
 		}
 
 		jobFunc, err := getJobFunc(job.Type)
@@ -83,7 +70,10 @@ func (s *Scheduler) Load() error {
 		}
 
 		// add job to the scheduler
+		// we always want to pass a value of jobRunner first and then optional parameters
 		taskParams := append([]any{s.jobRunner}, jsonParams...)
+
+		slog.Debug("creating job", "job_type", job.Type, "job_cron_expression", job.CronExpression, "job_params", job.Params)
 		scheduledJob, err := s.scheduler.NewJob(
 			gocron.CronJob(job.CronExpression, false),
 			gocron.NewTask(jobFunc, taskParams...),
@@ -104,22 +94,22 @@ func (s *Scheduler) Load() error {
 			return fmt.Errorf("failed to get next runs: %w", err)
 		}
 
-		for i, nextRun := range nextRuns {
-			slog.Info("next run", "index", i, "next_run", nextRun)
-		}
+		slog.Info("next runs", "next_run", nextRuns)
 	}
 
 	return nil
 }
-func New(db *sql.DB, cfg *config.Config) (*Scheduler, error) {
-	dbQueries := database.New(db)
-	s := Scheduler{
-		dbQueries: dbQueries,
-		cfg:       cfg,
-		jobRunner: NewJobRunner(dbQueries, cfg)}
 
-	var err error
-	s.scheduler, err = gocron.NewScheduler(
+func New(db *sql.DB, cfg *config.Config) (*Scheduler, error) {
+	if db == nil {
+		return nil, fmt.Errorf("must specify a database connection")
+	}
+	if cfg == nil {
+		return nil, fmt.Errorf("must specify a config")
+	}
+
+	dbQueries := database.New(db)
+	gcs, err := gocron.NewScheduler(
 		gocron.WithLocation(time.Now().Location()),
 		gocron.WithLogger(slog.Default()),
 	)
@@ -128,11 +118,10 @@ func New(db *sql.DB, cfg *config.Config) (*Scheduler, error) {
 		return nil, fmt.Errorf("failed to create scheduler: %w", err)
 	}
 
-	if err := s.Load(); err != nil {
-		slog.Error("failed to load jobs", "error", err)
-		return nil, fmt.Errorf("failed to load jobs: %w", err)
-	}
-
-	s.scheduler.Start()
-	return &s, nil
+	return &Scheduler{
+		dbQueries: dbQueries,
+		cfg:       cfg,
+		jobRunner: NewJobRunner(dbQueries, cfg),
+		scheduler: gcs,
+	}, nil
 }

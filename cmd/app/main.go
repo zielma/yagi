@@ -1,20 +1,27 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/zielma/yagi/internal/config"
 	"github.com/zielma/yagi/internal/database"
 	ihttp "github.com/zielma/yagi/internal/http"
+	"github.com/zielma/yagi/internal/jobs"
 	"github.com/zielma/yagi/internal/router"
 	"github.com/zielma/yagi/internal/scheduler"
 	"github.com/zielma/yagi/templates"
 )
 
 func main() {
+
 	lvl := new(slog.LevelVar)
 	lvl.Set(slog.LevelDebug)
 
@@ -67,11 +74,39 @@ func main() {
 		})
 	})
 
-	scheduler.New(db, config)
+	jobs.RegisterJobs()
+	s, err := scheduler.New(db, config)
+	if err != nil {
+		slog.Error("failed to create scheduler", slog.Any("error", err))
+		os.Exit(1)
+	}
+
+	if err = s.Load(); err != nil {
+		slog.Error("failed to load jobs", slog.Any("error", err))
+		os.Exit(1)
+	}
+
+	s.Start()
+	defer s.Shutdown()
 
 	server := ihttp.NewServer(r)
-	err = server.ListenAndServe()
-	if err != nil {
-		slog.Error("server error", slog.Any("error", err))
+	go func() {
+		if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("server error", slog.Any("error", err))
+		}
+		slog.Info("shutting down server")
+	}()
+
+	exit := make(chan os.Signal, 1)
+	signal.Notify(exit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	<-exit
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err = server.Shutdown(ctx); err != nil {
+		slog.Error("server shutdown error", slog.Any("error", err))
 	}
+
+	slog.Info("shutdown complete")
 }
