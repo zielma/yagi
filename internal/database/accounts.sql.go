@@ -10,8 +10,8 @@ import (
 )
 
 const createAccount = `-- name: CreateAccount :exec
-INSERT INTO accounts (id, name, budget_id, closed, balance, cleared) 
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO accounts (id, name, budget_id, closed) 
+VALUES (?, ?, ?, ?)
 `
 
 type CreateAccountParams struct {
@@ -19,8 +19,6 @@ type CreateAccountParams struct {
 	Name     string
 	BudgetID string
 	Closed   bool
-	Balance  int64
-	Cleared  int64
 }
 
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) error {
@@ -29,8 +27,6 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) er
 		arg.Name,
 		arg.BudgetID,
 		arg.Closed,
-		arg.Balance,
-		arg.Cleared,
 	)
 	return err
 }
