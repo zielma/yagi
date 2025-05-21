@@ -10,12 +10,15 @@ type Config struct {
 	YNABAPIKey             string
 	GoCardlessClientID     string
 	GoCardlessClientSecret string
+	YNABBaseURL            string
 }
 
 const (
 	EnvYnabApiKey             = "YAGI_YNAB_API_KEY"
 	EnvGoCardlessClientID     = "YAGI_GOCARDLESS_CLIENT_ID"
 	EnvGoCardlessClientSecret = "YAGI_GOCARDLESS_CLIENT_SECRET"
+	EnvYnabBaseURL            = "YAGI_YNAB_BASE_URL" // New environment variable for YNAB Base URL
+	DefaultYnabBaseURL        = "https://api.ynab.com/v1" // Default YNAB API URL
 )
 
 var (
@@ -29,6 +32,11 @@ func NewFromEnv() (*Config, error) {
 		YNABAPIKey:             os.Getenv(EnvYnabApiKey),
 		GoCardlessClientID:     os.Getenv(EnvGoCardlessClientID),
 		GoCardlessClientSecret: os.Getenv(EnvGoCardlessClientSecret),
+		YNABBaseURL:            os.Getenv(EnvYnabBaseURL),
+	}
+
+	if strings.TrimSpace(c.YNABBaseURL) == "" {
+		c.YNABBaseURL = DefaultYnabBaseURL
 	}
 
 	if strings.TrimSpace(c.YNABAPIKey) == "" {

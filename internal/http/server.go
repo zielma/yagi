@@ -14,7 +14,9 @@ type errorResponseWriter struct {
 	buf        *bytes.Buffer
 }
 
-func newErrorResponseWriter(w http.ResponseWriter) *errorResponseWriter {
+// NewErrorResponseWriter creates a new errorResponseWriter.
+// Exported for testing purposes.
+func NewErrorResponseWriter(w http.ResponseWriter) *errorResponseWriter {
 	return &errorResponseWriter{
 		ResponseWriter: w,
 		statusCode:     http.StatusOK,
@@ -40,7 +42,9 @@ func (w *errorResponseWriter) Write(b []byte) (int, error) {
 
 func NewServer(router *router.Router) *http.Server {
 	logWrapper := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ew := newErrorResponseWriter(w)
+		// Use the exported constructor here as well, though it's not strictly necessary
+		// as it's in the same package. It's good for consistency.
+		ew := NewErrorResponseWriter(w)
 		router.ServeMux.ServeHTTP(ew, r)
 	})
 

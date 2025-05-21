@@ -23,9 +23,7 @@ type Account struct {
 	Cleared  int64  `db:"cleared"`
 }
 
-const (
-	root = "https://api.ynab.com/v1"
-)
+// Removed const root = "https://api.ynab.com/v1"
 
 type budgetsResponse struct {
 	Data budgetData `json:"data"`
@@ -55,17 +53,19 @@ type BudgetsResponse struct {
 }
 
 type Client struct {
-	token string
+	token   string
+	baseURL string
 }
 
 func NewClient(cfg *config.Config) *Client {
 	return &Client{
-		token: cfg.YNABAPIKey,
+		token:   cfg.YNABAPIKey,
+		baseURL: cfg.YNABBaseURL, // Use YNABBaseURL from config
 	}
 }
 
 func (c *Client) GetBudgets(includeAccounts bool) (BudgetsResponse, error) {
-	url := root + "/budgets" + fmt.Sprintf("?include_accounts=%t", includeAccounts)
+	url := c.baseURL + "/budgets" + fmt.Sprintf("?include_accounts=%t", includeAccounts)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return BudgetsResponse{}, err
