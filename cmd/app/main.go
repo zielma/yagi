@@ -17,29 +17,37 @@ import (
 	"github.com/zielma/yagi/internal/jobs"
 	"github.com/zielma/yagi/internal/router"
 	"github.com/zielma/yagi/internal/scheduler"
+	"github.com/zielma/yagi/internal/ynab"
 	"github.com/zielma/yagi/templates"
 )
 
 func main() {
-
+	// Set up logging
 	lvl := new(slog.LevelVar)
 	lvl.Set(slog.LevelDebug)
-
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: lvl})))
 
+	// Load the configuration from the evironment
 	config, err := config.NewFromEnv()
 	if err != nil {
 		slog.Error("failed to get config", "error", err)
 		os.Exit(1)
 	}
 
-	db, err := database.Initialize()
+	// Check API connections
+	if ok, err := ynab.NewClient(config).CheckConnection(); !ok {
+		slog.Error("failed to connect to YNAB API", "error", err)
+		os.Exit(1)
+	}
 
+	// Initialize connection to the database
+	db, err := database.Initialize()
 	if err != nil {
 		slog.Error("failed to initialize database", "error", err)
 		os.Exit(1)
 	}
 
+	// Set up the HTTP server router
 	r := router.NewRouter()
 	r.Group(func(r *router.Router) {
 		r.Use(func(h http.Handler) http.Handler {
@@ -74,6 +82,8 @@ func main() {
 		})
 	})
 
+	// Set up the jobs scheduler
+	// Register the jobs
 	jobs.RegisterJobs()
 	s, err := scheduler.New(db, config)
 	if err != nil {
@@ -81,14 +91,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Load jobs from the database
 	if err = s.Load(); err != nil {
 		slog.Error("failed to load jobs", slog.Any("error", err))
 		os.Exit(1)
 	}
 
+	// Start the scheduler
 	s.Start()
 	defer s.Shutdown()
 
+	// Start the HTTP server
 	server := ihttp.NewServer(r)
 	go func() {
 		if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
