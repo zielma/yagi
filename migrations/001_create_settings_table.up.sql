@@ -26,4 +26,4 @@ CREATE TABLE IF NOT EXISTS jobs (
 ); 
 
 INSERT INTO jobs (type, params, cron_expression)
-VALUES ('syncBudgets', null, '0 * * * *');
+VALUES ('fetchBudgets', null, '0 * * * *');

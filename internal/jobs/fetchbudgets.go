@@ -11,8 +11,9 @@ import (
 	"github.com/zielma/yagi/internal/ynab"
 )
 
-func syncBudgets(r *scheduler.JobRunner) error {
-	slog.Debug("syncing budgets")
+// This task fetches budgets from the YNAB API and stores them in database
+func fetchBudgets(r *scheduler.JobRunner) error {
+	slog.Debug("starting fetch budgets job...")
 	client := ynab.NewClient(r.Config)
 	response, err := client.GetBudgets(true)
 	if err != nil {

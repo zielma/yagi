@@ -7,14 +7,14 @@ import (
 )
 
 func RegisterJobs() {
-	slog.Info("initializing jobs")
+	slog.Info("registering jobs")
 	jobs := []struct {
 		jobType string
 		jobFunc func(r *scheduler.JobRunner) error
 	}{
 		{
-			jobType: "syncBudgets",
-			jobFunc: syncBudgets,
+			jobType: "fetchBudgets",
+			jobFunc: fetchBudgets,
 		},
 	}
 
