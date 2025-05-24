@@ -22,13 +22,13 @@ func (m *mockDBTX) QueryRowContext(ctx context.Context, query string, args ...in
 }
 
 func TestNew(t *testing.T) {
-	// Arrange
+	// Setup mock
 	mockDB := &mockDBTX{}
 
-	// Act
+	// Get queries instance
 	queries := New(mockDB)
 
-	// Assert
+	// Validate queries use the mockDB
 	if queries == nil {
 		t.Fatal("Expected New() to return non-nil Queries instance")
 	}
@@ -38,15 +38,15 @@ func TestNew(t *testing.T) {
 }
 
 func TestWithTx(t *testing.T) {
-	// Arrange
+	// Setup mocks
 	mockDB := &mockDBTX{}
 	queries := New(mockDB)
 	tx := &sql.Tx{}
 
-	// Act
+	// Get queries with transaction
 	txQueries := queries.WithTx(tx)
 
-	// Assert
+	// Validate that queries use the transaction
 	if txQueries == nil {
 		t.Fatal("Expected WithTx() to return non-nil Queries instance")
 	}
