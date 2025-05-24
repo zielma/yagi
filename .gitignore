@@ -6,6 +6,7 @@
 !.air.toml
 !http/*.http
 !.github/workflows/ci.yml
+!codecov.yml
 
 !Makefile
 !*.go
