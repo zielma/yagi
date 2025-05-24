@@ -28,22 +28,14 @@ func TestFetchBudgets(t *testing.T) {
 			return database.Budget{}, sql.ErrNoRows
 		},
 		createBudget: func(ctx context.Context, arg database.CreateBudgetParams) error {
-			budgets = append(budgets, database.Budget{
-				ID:   arg.ID,
-				Name: arg.Name,
-			})
+			budgets = append(budgets, database.Budget(arg))
 			return nil
 		},
 		getAccount: func(ctx context.Context, id string) (database.Account, error) {
 			return database.Account{}, sql.ErrNoRows
 		},
 		createAccount: func(ctx context.Context, arg database.CreateAccountParams) error {
-			accounts = append(accounts, database.Account{
-				ID:       arg.ID,
-				BudgetID: arg.BudgetID,
-				Name:     arg.Name,
-				Closed:   arg.Closed,
-			})
+			accounts = append(accounts, database.Account(arg))
 			return nil
 		},
 	}
