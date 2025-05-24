@@ -14,8 +14,6 @@ type Account struct {
 	Name     string
 	BudgetID string
 	Closed   bool
-	Balance  int64
-	Cleared  int64
 }
 
 type Budget struct {

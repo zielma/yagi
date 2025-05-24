@@ -19,18 +19,31 @@ func (m *mockYNABClient) GetBudgets(includeAccounts bool) (ynab.BudgetsResponse,
 }
 
 func TestFetchBudgets(t *testing.T) {
-	// Create mocks
+	// Create local store and mocks
+	budgets := []database.Budget{}
+	accounts := []database.Account{}
+
 	mockStore := &mockBudgetStore{
 		getBudget: func(ctx context.Context, id string) (database.Budget, error) {
 			return database.Budget{}, sql.ErrNoRows
 		},
 		createBudget: func(ctx context.Context, arg database.CreateBudgetParams) error {
+			budgets = append(budgets, database.Budget{
+				ID:   arg.ID,
+				Name: arg.Name,
+			})
 			return nil
 		},
 		getAccount: func(ctx context.Context, id string) (database.Account, error) {
 			return database.Account{}, sql.ErrNoRows
 		},
 		createAccount: func(ctx context.Context, arg database.CreateAccountParams) error {
+			accounts = append(accounts, database.Account{
+				ID:       arg.ID,
+				BudgetID: arg.BudgetID,
+				Name:     arg.Name,
+				Closed:   arg.Closed,
+			})
 			return nil
 		},
 	}
@@ -60,6 +73,22 @@ func TestFetchBudgets(t *testing.T) {
 	job := newFetchBudgetsJob(mockStore, mockClient)
 	if err := job.Run(); err != nil {
 		t.Errorf("fetchBudgets returned an error: %v", err)
+	}
+
+	// Validate budgets
+	if len(budgets) != 1 {
+		t.Errorf("expected 1 budget, got %d", len(budgets))
+	}
+	if budgets[0].ID != "test-budget-id" || budgets[0].Name != "Test Budget" {
+		t.Errorf("expected budget ID 'test-budget-id' and name 'Test Budget', got ID '%s' and name '%s'", budgets[0].ID, budgets[0].Name)
+	}
+
+	// Validate accounts
+	if len(accounts) != 1 {
+		t.Errorf("expected 1 account, got %d", len(accounts))
+	}
+	if accounts[0].ID != "test-account-id" || accounts[0].BudgetID != "test-budget-id" || accounts[0].Name != "Test Account" || accounts[0].Closed {
+		t.Errorf("expected account ID 'test-account-id', budget ID 'test-budget-id', name 'Test Account', closed false, got ID '%s', budget ID '%s', name '%s', closed %t", accounts[0].ID, accounts[0].BudgetID, accounts[0].Name, accounts[0].Closed)
 	}
 }
 

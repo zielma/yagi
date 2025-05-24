@@ -12,9 +12,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     budget_id TEXT NOT NULL,
-    closed BOOLEAN NOT NULL,
-    balance INTEGER NOT NULL,
-    cleared INTEGER NOT NULL
+    closed BOOLEAN NOT NULL
 ); 
 
 CREATE TABLE IF NOT EXISTS jobs (
