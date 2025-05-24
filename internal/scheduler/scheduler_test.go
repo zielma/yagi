@@ -35,9 +35,12 @@ func setupLoad(t *testing.T) (*Scheduler, *dbStub) {
 }
 
 func TestLoadWithRegisteredJob(t *testing.T) {
-	RegisterJob("testFunc", func(r *JobRunner, a string) error {
+	err := RegisterJob("testFunc", func(r *JobRunner, a string) error {
 		return nil
 	})
+	if err != nil {
+		t.Fatal("register job should not return error")
+	}
 
 	s, db := setupLoad(t)
 	db.GetJobsFunc = func(context.Context) ([]database.GetJobsRow, error) {
@@ -50,7 +53,7 @@ func TestLoadWithRegisteredJob(t *testing.T) {
 		}, nil
 	}
 
-	err := s.Load()
+	err = s.Load()
 	if err != nil {
 		t.Fatalf("load should not return error, err: %s", err)
 	}
