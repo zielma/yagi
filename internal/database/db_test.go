@@ -30,7 +30,7 @@ func TestNew(t *testing.T) {
 
 	// Assert
 	if queries == nil {
-		t.Error("Expected New() to return non-nil Queries instance")
+		t.Fatal("Expected New() to return non-nil Queries instance")
 	}
 	if queries.db != mockDB {
 		t.Error("Expected db field to be set to mockDB")
@@ -48,7 +48,7 @@ func TestWithTx(t *testing.T) {
 
 	// Assert
 	if txQueries == nil {
-		t.Error("Expected WithTx() to return non-nil Queries instance")
+		t.Fatal("Expected WithTx() to return non-nil Queries instance")
 	}
 	if txQueries.db != tx {
 		t.Error("Expected db field to be set to the transaction")

@@ -116,7 +116,7 @@ func TestNewServer(t *testing.T) {
 		http.Error(w, errorMsg, http.StatusBadRequest)
 	})
 	r.ServeMux.HandleFunc("/success", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	})
 
 	server := NewServer(r)
