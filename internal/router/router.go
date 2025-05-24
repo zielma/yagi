@@ -15,7 +15,7 @@ type (
 	}
 )
 
-func NewRouter(mx ...Middleware) *Router {
+func New(mx ...Middleware) *Router {
 	return &Router{ServeMux: &http.ServeMux{}, chain: mx}
 }
 

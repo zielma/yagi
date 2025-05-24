@@ -48,7 +48,7 @@ func main() {
 	}
 
 	// Set up the HTTP server router
-	r := router.NewRouter()
+	r := router.New()
 	r.Group(func(r *router.Router) {
 		r.Use(func(h http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

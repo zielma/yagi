@@ -8,7 +8,7 @@ import (
 )
 
 func TestBasicRouting(t *testing.T) {
-	r := NewRouter()
+	r := New()
 	called := false
 
 	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +29,7 @@ func TestBasicRouting(t *testing.T) {
 }
 
 func TestMethodNotAllowed(t *testing.T) {
-	r := NewRouter()
+	r := New()
 	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {})
 
 	req := httptest.NewRequest(http.MethodPost, "/test", nil)
@@ -50,7 +50,7 @@ func TestMiddleware(t *testing.T) {
 		})
 	}
 
-	r := NewRouter(middleware)
+	r := New(middleware)
 	handlerCalled := false
 
 	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +77,7 @@ func TestMiddleware(t *testing.T) {
 }
 
 func TestGroup(t *testing.T) {
-	r := NewRouter()
+	r := New()
 	groupCalled := false
 	middlewareCalled := false
 
@@ -124,7 +124,7 @@ func TestMultipleMiddleware(t *testing.T) {
 		})
 	}
 
-	r := NewRouter(middleware1)
+	r := New(middleware1)
 	r.Use(middleware2)
 
 	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +143,7 @@ func TestMultipleMiddleware(t *testing.T) {
 
 func TestAllHttpMethods(t *testing.T) {
 
-	r := NewRouter()
+	r := New()
 	tests := []struct {
 		method string
 		setup  func(string, http.HandlerFunc, ...Middleware)
