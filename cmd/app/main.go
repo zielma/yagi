@@ -84,7 +84,7 @@ func main() {
 
 	// Set up the jobs scheduler
 	// Register the jobs
-	jobs.RegisterJobs()
+	jobs.RegisterJobs(config)
 	s, err := scheduler.New(db, config)
 	if err != nil {
 		slog.Error("failed to create scheduler", slog.Any("error", err))

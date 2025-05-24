@@ -3,18 +3,25 @@ package jobs
 import (
 	"log/slog"
 
+	"github.com/zielma/yagi/internal/config"
 	"github.com/zielma/yagi/internal/scheduler"
+	"github.com/zielma/yagi/internal/ynab"
 )
 
-func RegisterJobs() {
+func RegisterJobs(cfg *config.Config) {
 	slog.Info("registering jobs")
+	client := ynab.NewClient(cfg)
+
 	jobs := []struct {
 		jobType string
 		jobFunc func(r *scheduler.JobRunner) error
 	}{
 		{
 			jobType: "fetchBudgets",
-			jobFunc: fetchBudgets,
+			jobFunc: func(r *scheduler.JobRunner) error {
+				job := newFetchBudgetsJob(r.Database, client)
+				return job.Run()
+			},
 		},
 	}
 
