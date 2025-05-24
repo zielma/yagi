@@ -1,3 +1,2 @@
-codecov:
-  ignore:
-  - "internal/database/*.sql.go" # Ignore generated SQL files
+ignore:
+- "internal/database/*.sql.go" # Ignore generated SQL files
