@@ -1,0 +1,2 @@
+ignore:
+- "internal/database/*.sql.go" # Ignore generated SQL files

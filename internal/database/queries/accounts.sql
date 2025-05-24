@@ -5,5 +5,5 @@ SELECT * FROM accounts WHERE id = ? LIMIT 1;
 SELECT * FROM accounts;
 
 -- name: CreateAccount :exec
-INSERT INTO accounts (id, name, budget_id, closed, balance, cleared) 
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT INTO accounts (id, name, budget_id, closed) 
+VALUES (?, ?, ?, ?);

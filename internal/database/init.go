@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	dataFolder       = "data"
-	dbFileName       = "yagi.sqlite3"
-	migrationsFolder = "migrations"
+	dataFolder                  = "data"
+	dbFileName                  = "yagi.sqlite3"
+	migrationsFolder            = "migrations"
+	ownerReadWriteOthersReadDir = 0755
 )
 
 func Initialize() (*sql.DB, error) {
@@ -30,7 +31,7 @@ func Initialize() (*sql.DB, error) {
 func initialize(dataFolder string, dbFileName string, migrationsFolder string) (*sql.DB, error) {
 	if _, err := os.Stat(dataFolder); os.IsNotExist(err) {
 		slog.Debug("data folder does not exist, creating it", "dataFolder", dataFolder)
-		if err := os.Mkdir(dataFolder, 0755); err != nil {
+		if err := os.Mkdir(dataFolder, ownerReadWriteOthersReadDir); err != nil {
 			return nil, err
 		}
 	}

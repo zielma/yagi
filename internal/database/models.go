@@ -5,6 +5,7 @@
 package database
 
 import (
+	"database/sql"
 	"time"
 )
 
@@ -13,8 +14,6 @@ type Account struct {
 	Name     string
 	BudgetID string
 	Closed   bool
-	Balance  int64
-	Cleared  int64
 }
 
 type Budget struct {
@@ -23,11 +22,11 @@ type Budget struct {
 }
 
 type Job struct {
-	ID        string
-	Type      string
-	Status    string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Type           string
+	Params         sql.NullString
+	CronExpression string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type Setting struct {

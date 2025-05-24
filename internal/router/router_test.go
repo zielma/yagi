@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-func TestRouter_BasicRouting(t *testing.T) {
-	r := NewRouter()
+func TestBasicRouting(t *testing.T) {
+	r := New()
 	called := false
 
 	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
@@ -20,12 +20,16 @@ func TestRouter_BasicRouting(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if !called {
-		t.Error("Handler was not called")
+		t.Error("handler was not called")
+	}
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status code, want: %d, got: %d", http.StatusOK, w.Code)
 	}
 }
 
-func TestRouter_MethodNotAllowed(t *testing.T) {
-	r := NewRouter()
+func TestMethodNotAllowed(t *testing.T) {
+	r := New()
 	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {})
 
 	req := httptest.NewRequest(http.MethodPost, "/test", nil)
@@ -33,11 +37,11 @@ func TestRouter_MethodNotAllowed(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusMethodNotAllowed {
-		t.Errorf("Expected status code %d, got %d", http.StatusMethodNotAllowed, w.Code)
+		t.Errorf("status code, want: %d, got: %d", http.StatusMethodNotAllowed, w.Code)
 	}
 }
 
-func TestRouter_Middleware(t *testing.T) {
+func TestMiddleware(t *testing.T) {
 	middlewareCalled := false
 	middleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,11 +50,14 @@ func TestRouter_Middleware(t *testing.T) {
 		})
 	}
 
-	r := NewRouter(middleware)
+	r := New(middleware)
 	handlerCalled := false
 
 	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
 		handlerCalled = true
+		if _, err := w.Write([]byte("hello")); err != nil {
+			t.Errorf("failed to write response: %v", err)
+		}
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -58,15 +65,19 @@ func TestRouter_Middleware(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if !middlewareCalled {
-		t.Error("Middleware was not called")
+		t.Error("middleware was not called")
 	}
 	if !handlerCalled {
-		t.Error("Handler was not called")
+		t.Error("handler was not called")
+	}
+
+	if w.Body.String() != "hello" {
+		t.Errorf("response body, want: %s, got: %s", "hello", w.Body.String())
 	}
 }
 
-func TestRouter_Group(t *testing.T) {
-	r := NewRouter()
+func TestGroup(t *testing.T) {
+	r := New()
 	groupCalled := false
 	middlewareCalled := false
 
@@ -89,14 +100,14 @@ func TestRouter_Group(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if !middlewareCalled {
-		t.Error("Group middleware was not called")
+		t.Error("group middleware was not called")
 	}
 	if !groupCalled {
-		t.Error("Group handler was not called")
+		t.Error("group handler was not called")
 	}
 }
 
-func TestRouter_MultipleMiddleware(t *testing.T) {
+func TestMultipleMiddleware(t *testing.T) {
 	order := []string{}
 
 	middleware1 := func(next http.Handler) http.Handler {
@@ -113,7 +124,7 @@ func TestRouter_MultipleMiddleware(t *testing.T) {
 		})
 	}
 
-	r := NewRouter(middleware1)
+	r := New(middleware1)
 	r.Use(middleware2)
 
 	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
@@ -126,13 +137,13 @@ func TestRouter_MultipleMiddleware(t *testing.T) {
 
 	expected := []string{"m1", "m2", "handler"}
 	if !slices.Equal(order, expected) {
-		t.Errorf("Expected middleware execution order %v, got %v", expected, order)
+		t.Errorf("incorrect middleware execution order, want: %#v, got: %#v", expected, order)
 	}
 }
 
-func TestRouter_AllMethods(t *testing.T) {
+func TestAllHttpMethods(t *testing.T) {
 
-	r := NewRouter()
+	r := New()
 	tests := []struct {
 		method string
 		setup  func(string, http.HandlerFunc, ...Middleware)
@@ -159,7 +170,7 @@ func TestRouter_AllMethods(t *testing.T) {
 			r.ServeHTTP(w, req)
 
 			if !called {
-				t.Errorf("%s handler was not called", tt.method)
+				t.Errorf("handler[%s] was not called", tt.method)
 			}
 		})
 	}

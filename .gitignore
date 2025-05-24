@@ -6,7 +6,9 @@
 !.air.toml
 !http/*.http
 !.github/workflows/ci.yml
+!codecov.yml
 
+!Makefile
 !*.go
 !go.sum
 !go.mod
@@ -14,7 +16,7 @@
 !migrations/*
 
 !internal/database/queries/*.sql
-
+!internal/database/migrations/*.sql
 
 !README.md
 !LICENSE

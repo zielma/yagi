@@ -3,20 +3,28 @@ package scheduler
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	"github.com/zielma/yagi/internal/config"
 	"github.com/zielma/yagi/internal/database"
-	"github.com/zielma/yagi/internal/ynab"
 )
 
+type dbQueries interface {
+	GetJobs(ctx context.Context) ([]database.GetJobsRow, error)
+}
+
 type Scheduler struct {
-	query     *database.Queries
+	dbQueries dbQueries
 	cfg       *config.Config
 	scheduler gocron.Scheduler
+	jobRunner *JobRunner
 }
 
 type _ struct {
@@ -32,90 +40,88 @@ func (s *Scheduler) Shutdown() {
 	_ = s.scheduler.Shutdown()
 }
 
-func New(db *sql.DB, cfg *config.Config) *Scheduler {
-	s := Scheduler{query: database.New(db), cfg: cfg}
-
-	var err error
-	s.scheduler, err = gocron.NewScheduler()
-	if err != nil {
-		slog.Error("failed to create scheduler", "error", err)
-		return nil
-	}
-
-	_, err = s.scheduler.NewJob(
-		gocron.OneTimeJob(
-			gocron.OneTimeJobStartDateTime(time.Now().Add(2*time.Second)),
-		),
-		gocron.NewTask(s.syncBudgets),
-		gocron.WithEventListeners(
-			gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, err error) {
-				slog.Error("job failed", "job_id", jobID, "job_name", jobName, "error", err)
-			}),
-		),
-	)
-	if err != nil {
-		slog.Error("failed to create job", "error", err)
-	}
-
+func (s *Scheduler) Start() {
 	s.scheduler.Start()
-
-	return &s
 }
 
-func (s *Scheduler) syncBudgets() error {
+func (s *Scheduler) Load() error {
+	slog.Info("loading jobs from database")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	slog.Debug("syncing budgets")
-
-	client := ynab.NewClient(s.cfg)
-	response, err := client.GetBudgets(true)
+	jobs, err := s.dbQueries.GetJobs(ctx)
 	if err != nil {
-		slog.Debug("failed to get budgets", "error", err)
-		return err
+		return fmt.Errorf("failed to load jobs: %w", err)
 	}
 
-	for _, budget := range response.Budgets {
-		existing, err := s.query.GetBudget(context.Background(), budget.Id)
-		if err != nil && err != sql.ErrNoRows {
-			slog.Debug("failed to get budget", "error", err)
-			return err
+	for _, job := range jobs {
+		slog.Debug("found job", "job_type", job.Type, "job_cron_expression", job.CronExpression, "job_params", job.Params)
+		// decode job parameters to slice, position of arguments matters
+		jsonParams := []any{}
+		if job.Params.Valid {
+			if err := json.NewDecoder(strings.NewReader(job.Params.String)).Decode(&jsonParams); err != nil {
+				return fmt.Errorf("failed to decode job params[%s]: %w", job.Params.String, err)
+			}
 		}
 
-		if existing.ID != "" {
-			continue
+		jobFunc, err := getJobFunc(job.Type)
+		if err != nil && errors.Is(err, ErrUnknownJobType) {
+			return fmt.Errorf("getJobFunc[%s]: %w", job.Type, err)
 		}
 
-		if err := s.query.CreateBudget(context.Background(), database.CreateBudgetParams{
-			ID:   budget.Id,
-			Name: budget.Name,
-		}); err != nil {
-			slog.Debug("failed to create budget", "error", err)
-			return err
-		}
-	}
+		// add job to the scheduler
+		// we always want to pass a value of jobRunner first and then optional parameters
+		taskParams := append([]any{s.jobRunner}, jsonParams...)
 
-	for _, account := range response.Accounts {
-		existing, err := s.query.GetAccount(context.Background(), account.Id)
-		if err != nil && err != sql.ErrNoRows {
-			slog.Debug("failed to get account", "error", err)
-			return err
+		slog.Debug("creating job", "job_type", job.Type, "job_cron_expression", job.CronExpression, "job_params", job.Params)
+		scheduledJob, err := s.scheduler.NewJob(
+			gocron.CronJob(job.CronExpression, false),
+			gocron.NewTask(jobFunc, taskParams...),
+			gocron.WithName(job.Type),
+			gocron.WithEventListeners(
+				gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, joberr error) {
+					slog.Error("job failed", "job_id", jobID, "job_name", jobName, "error", joberr)
+				}),
+			),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create new job: %w", err)
 		}
 
-		if existing.ID != "" {
-			continue
+		// get next 3 run times and log them
+		nextRuns, err := scheduledJob.NextRuns(3)
+		if err != nil {
+			return fmt.Errorf("failed to get next runs: %w", err)
 		}
 
-		if err := s.query.CreateAccount(context.Background(), database.CreateAccountParams{
-			ID:       account.Id,
-			Name:     account.Name,
-			BudgetID: account.BudgetID,
-			Closed:   account.Closed,
-			Balance:  account.Balance,
-			Cleared:  account.Cleared,
-		}); err != nil {
-			slog.Debug("failed to create account", "error", err)
-			return err
-		}
+		slog.Info("next runs", "next_run", nextRuns)
 	}
 
 	return nil
+}
+
+func New(db *sql.DB, cfg *config.Config) (*Scheduler, error) {
+	if db == nil {
+		return nil, fmt.Errorf("must specify a database connection")
+	}
+	if cfg == nil {
+		return nil, fmt.Errorf("must specify a config")
+	}
+
+	dbQueries := database.New(db)
+	gcs, err := gocron.NewScheduler(
+		gocron.WithLocation(time.Now().Location()),
+		gocron.WithLogger(slog.Default()),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create scheduler: %w", err)
+	}
+
+	return &Scheduler{
+		dbQueries: dbQueries,
+		cfg:       cfg,
+		jobRunner: NewJobRunner(dbQueries, cfg),
+		scheduler: gcs,
+	}, nil
 }

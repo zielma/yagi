@@ -8,26 +8,26 @@ import (
 	"github.com/zielma/yagi/internal/router"
 )
 
-type errorResponseWriter struct {
+type errorLoggingResponseWriter struct {
 	http.ResponseWriter
 	statusCode int
 	buf        *bytes.Buffer
 }
 
-func newErrorResponseWriter(w http.ResponseWriter) *errorResponseWriter {
-	return &errorResponseWriter{
+func newErrorLoggingResponseWriter(w http.ResponseWriter) *errorLoggingResponseWriter {
+	return &errorLoggingResponseWriter{
 		ResponseWriter: w,
 		statusCode:     http.StatusOK,
 		buf:            &bytes.Buffer{},
 	}
 }
 
-func (w *errorResponseWriter) WriteHeader(code int) {
+func (w *errorLoggingResponseWriter) WriteHeader(code int) {
 	w.statusCode = code
 	w.ResponseWriter.WriteHeader(code)
 }
 
-func (w *errorResponseWriter) Write(b []byte) (int, error) {
+func (w *errorLoggingResponseWriter) Write(b []byte) (int, error) {
 	if w.statusCode >= 400 {
 		w.buf.Write(b)
 		slog.Warn("error response",
@@ -40,7 +40,7 @@ func (w *errorResponseWriter) Write(b []byte) (int, error) {
 
 func NewServer(router *router.Router) *http.Server {
 	logWrapper := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ew := newErrorResponseWriter(w)
+		ew := newErrorLoggingResponseWriter(w)
 		router.ServeMux.ServeHTTP(ew, r)
 	})
 
