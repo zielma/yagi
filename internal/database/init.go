@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -20,12 +21,14 @@ const (
 	ownerReadWriteOthersReadDir = 0755
 )
 
-func Initialize() (*sql.DB, error) {
+func Initialize() (*Queries, error) {
 	db, err := initialize(dataFolder, dbFileName, migrationsFolder)
 	if err != nil {
 		return nil, err
 	}
-	return db, nil
+
+	queries := New(db)
+	return queries, nil
 }
 
 func initialize(dataFolder string, dbFileName string, migrationsFolder string) (*sql.DB, error) {
@@ -61,7 +64,7 @@ func initialize(dataFolder string, dbFileName string, migrationsFolder string) (
 	}
 
 	slog.Debug("running up migrations", "migrationsFolder", migrationsFolder)
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		slog.Debug("failed to run up migrations", "error", err)
 		return nil, err
 	}

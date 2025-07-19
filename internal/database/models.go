@@ -10,15 +10,19 @@ import (
 )
 
 type Account struct {
-	ID       string
-	Name     string
-	BudgetID string
-	Closed   bool
+	ID        string
+	Name      string
+	BudgetID  string
+	Closed    bool
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Budget struct {
-	ID   string
-	Name string
+	ID        string
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Job struct {

@@ -14,7 +14,6 @@ import (
 	"github.com/zielma/yagi/internal/config"
 	"github.com/zielma/yagi/internal/database"
 	ihttp "github.com/zielma/yagi/internal/http"
-	"github.com/zielma/yagi/internal/jobs"
 	"github.com/zielma/yagi/internal/router"
 	"github.com/zielma/yagi/internal/scheduler"
 	"github.com/zielma/yagi/internal/ynab"
@@ -82,10 +81,9 @@ func main() {
 		})
 	})
 
-	// Set up the jobs scheduler
-	// Register the jobs
-	jobs.RegisterJobs(config)
-	s, err := scheduler.New(db, config)
+	// Set up the job scheduler
+	schedulerStore := scheduler.NewStore(db)
+	s, err := scheduler.New(schedulerStore, config)
 	if err != nil {
 		slog.Error("failed to create scheduler", slog.Any("error", err))
 		os.Exit(1)

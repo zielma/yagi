@@ -27,7 +27,7 @@
 ### Sequence Diagrams
 
 ### <p align="center">User link their bank account(s) with YNAB account(s)</p>
-::: mermaid
+```mermaid
 sequenceDiagram
     participant Bank
     actor User
@@ -53,4 +53,4 @@ sequenceDiagram
     deactivate User
     YAGI->YAGI: store mapping
     YAGI->YAGI: schedule job to fetch transactions
-:::
+```

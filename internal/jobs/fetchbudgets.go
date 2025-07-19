@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -22,6 +23,7 @@ var _ YNABClient = (*ynab.Client)(nil)
 type BudgetStore interface {
 	GetBudget(ctx context.Context, id string) (database.Budget, error)
 	CreateBudget(ctx context.Context, arg database.CreateBudgetParams) error
+	UpdateBudget(ctx context.Context, arg database.UpdateBudgetParams) error
 	GetAccount(ctx context.Context, id string) (database.Account, error)
 	CreateAccount(ctx context.Context, arg database.CreateAccountParams) error
 }
@@ -35,7 +37,7 @@ type fetchBudgetsJob struct {
 	client YNABClient
 }
 
-func newFetchBudgetsJob(store BudgetStore, client YNABClient) *fetchBudgetsJob {
+func NewFetchBudgetsJob(store BudgetStore, client YNABClient) *fetchBudgetsJob {
 	return &fetchBudgetsJob{
 		store:  store,
 		client: client,
@@ -44,29 +46,43 @@ func newFetchBudgetsJob(store BudgetStore, client YNABClient) *fetchBudgetsJob {
 
 func (j *fetchBudgetsJob) Run() error {
 	slog.Debug("starting fetch budgets job...")
+
+	// Fetch budgets and accounts from YNAB API
 	response, err := j.client.GetBudgets(true)
 	if err != nil {
 		return fmt.Errorf("failed to get budgets from YNAB: %w", err)
 	}
 
+	// Process budgets and update or create them in the database
 	for _, budget := range response.Budgets {
+		// Check if the budget already exists in the database
 		existing, err := j.store.GetBudget(context.Background(), budget.Id)
-		if err != nil && err != sql.ErrNoRows {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("failed to get budget[id:%s] from database: %w", budget.Id, err)
 		}
 
 		if existing.ID != "" {
-			continue
-		}
-
-		if err := j.store.CreateBudget(context.Background(), database.CreateBudgetParams{
-			ID:   budget.Id,
-			Name: budget.Name,
-		}); err != nil {
-			return fmt.Errorf("failed to create budget[id:%s][name:%s]: %w", budget.Id, budget.Name, err)
+			// Update budget if name has changed
+			if existing.Name != budget.Name {
+				if err := j.store.UpdateBudget(context.Background(), database.UpdateBudgetParams{
+					ID:   budget.Id,
+					Name: budget.Name,
+				}); err != nil {
+					return fmt.Errorf("failed to update budget[id:%s][name:%s]: %w", budget.Id, budget.Name, err)
+				}
+			}
+		} else {
+			// Create budget if it does not exist
+			if err := j.store.CreateBudget(context.Background(), database.CreateBudgetParams{
+				ID:   budget.Id,
+				Name: budget.Name,
+			}); err != nil {
+				return fmt.Errorf("failed to create budget[id:%s][name:%s]: %w", budget.Id, budget.Name, err)
+			}
 		}
 	}
 
+	// Process accounts and update or create them in the database
 	for _, account := range response.Accounts {
 		existing, err := j.store.GetAccount(context.Background(), account.Id)
 		if err != nil && err != sql.ErrNoRows {

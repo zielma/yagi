@@ -32,7 +32,7 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) er
 }
 
 const getAccount = `-- name: GetAccount :one
-SELECT id, name, budget_id, closed FROM accounts WHERE id = ? LIMIT 1
+SELECT id, name, budget_id, closed, created_at, updated_at FROM accounts WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetAccount(ctx context.Context, id string) (Account, error) {
@@ -43,12 +43,14 @@ func (q *Queries) GetAccount(ctx context.Context, id string) (Account, error) {
 		&i.Name,
 		&i.BudgetID,
 		&i.Closed,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getAccounts = `-- name: GetAccounts :many
-SELECT id, name, budget_id, closed FROM accounts
+SELECT id, name, budget_id, closed, created_at, updated_at FROM accounts
 `
 
 func (q *Queries) GetAccounts(ctx context.Context) ([]Account, error) {
@@ -65,6 +67,8 @@ func (q *Queries) GetAccounts(ctx context.Context) ([]Account, error) {
 			&i.Name,
 			&i.BudgetID,
 			&i.Closed,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

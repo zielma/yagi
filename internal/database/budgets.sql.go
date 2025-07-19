@@ -24,18 +24,23 @@ func (q *Queries) CreateBudget(ctx context.Context, arg CreateBudgetParams) erro
 }
 
 const getBudget = `-- name: GetBudget :one
-SELECT id, name FROM budgets WHERE id = ? LIMIT 1
+SELECT id, name, created_at, updated_at FROM budgets WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetBudget(ctx context.Context, id string) (Budget, error) {
 	row := q.db.QueryRowContext(ctx, getBudget, id)
 	var i Budget
-	err := row.Scan(&i.ID, &i.Name)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
 const getBudgets = `-- name: GetBudgets :many
-SELECT id, name FROM budgets
+SELECT id, name, created_at, updated_at FROM budgets
 `
 
 func (q *Queries) GetBudgets(ctx context.Context) ([]Budget, error) {
@@ -47,7 +52,12 @@ func (q *Queries) GetBudgets(ctx context.Context) ([]Budget, error) {
 	var items []Budget
 	for rows.Next() {
 		var i Budget
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -59,4 +69,21 @@ func (q *Queries) GetBudgets(ctx context.Context) ([]Budget, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateBudget = `-- name: UpdateBudget :exec
+UPDATE budgets
+SET name = ?
+    ,updated_at = datetime('now')
+WHERE id = ?
+`
+
+type UpdateBudgetParams struct {
+	Name string
+	ID   string
+}
+
+func (q *Queries) UpdateBudget(ctx context.Context, arg UpdateBudgetParams) error {
+	_, err := q.db.ExecContext(ctx, updateBudget, arg.Name, arg.ID)
+	return err
 }

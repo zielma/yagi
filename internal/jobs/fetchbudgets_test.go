@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 
 	"github.com/zielma/yagi/internal/database"
@@ -28,14 +29,32 @@ func TestFetchBudgets(t *testing.T) {
 			return database.Budget{}, sql.ErrNoRows
 		},
 		createBudget: func(ctx context.Context, arg database.CreateBudgetParams) error {
-			budgets = append(budgets, database.Budget(arg))
+			budgets = append(budgets, database.Budget{
+				ID:   arg.ID,
+				Name: arg.Name,
+			})
 			return nil
+		},
+		updateBudget: func(ctx context.Context, arg database.UpdateBudgetParams) error {
+			for i, b := range budgets {
+				if b.ID == arg.ID {
+					budgets[i].Name = arg.Name
+					return nil
+				}
+			}
+			return fmt.Errorf("budget with ID %s not found", arg.ID)
 		},
 		getAccount: func(ctx context.Context, id string) (database.Account, error) {
 			return database.Account{}, sql.ErrNoRows
 		},
 		createAccount: func(ctx context.Context, arg database.CreateAccountParams) error {
-			accounts = append(accounts, database.Account(arg))
+			accounts = append(accounts, database.Account{
+				ID:       arg.ID,
+				BudgetID: arg.BudgetID,
+				Name:     arg.Name,
+				Closed:   arg.Closed,
+			})
+
 			return nil
 		},
 	}
@@ -62,7 +81,7 @@ func TestFetchBudgets(t *testing.T) {
 	}
 
 	// Create and run the job
-	job := newFetchBudgetsJob(mockStore, mockClient)
+	job := NewFetchBudgetsJob(mockStore, mockClient)
 	if err := job.Run(); err != nil {
 		t.Errorf("fetchBudgets returned an error: %v", err)
 	}
@@ -88,6 +107,7 @@ func TestFetchBudgets(t *testing.T) {
 type mockBudgetStore struct {
 	getBudget     func(ctx context.Context, id string) (database.Budget, error)
 	createBudget  func(ctx context.Context, arg database.CreateBudgetParams) error
+	updateBudget  func(ctx context.Context, arg database.UpdateBudgetParams) error
 	getAccount    func(ctx context.Context, id string) (database.Account, error)
 	createAccount func(ctx context.Context, arg database.CreateAccountParams) error
 }
@@ -98,6 +118,10 @@ func (m *mockBudgetStore) GetBudget(ctx context.Context, id string) (database.Bu
 
 func (m *mockBudgetStore) CreateBudget(ctx context.Context, arg database.CreateBudgetParams) error {
 	return m.createBudget(ctx, arg)
+}
+
+func (m *mockBudgetStore) UpdateBudget(ctx context.Context, arg database.UpdateBudgetParams) error {
+	return m.updateBudget(ctx, arg)
 }
 
 func (m *mockBudgetStore) GetAccount(ctx context.Context, id string) (database.Account, error) {
