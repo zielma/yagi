@@ -11,6 +11,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "modernc.org/sqlite"
 )
 
@@ -46,14 +47,23 @@ func initialize(dataFolder string, dbFileName string, migrationsFolder string) (
 		return nil, err
 	}
 
+	// Database driver for migrations
 	driver, err := sqlite.WithInstance(db, &sqlite.Config{})
 	if err != nil {
 		slog.Debug("failed to create driver", "error", err)
 		return nil, err
 	}
 
-	m, err := migrate.NewWithDatabaseInstance(
-		fmt.Sprintf("file://%s", migrationsFolder),
+	// Source for migrations -> embedded filesystem
+	ms, err := iofs.New(migrations, migrationsFolder)
+	if err != nil {
+		slog.Debug("failed to create migrations source", "error", err)
+		return nil, err
+	}
+
+	m, err := migrate.NewWithInstance(
+		"iofs",
+		ms,
 		"yagi",
 		driver,
 	)
