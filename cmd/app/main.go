@@ -14,6 +14,7 @@ import (
 	"github.com/zielma/yagi/internal/config"
 	"github.com/zielma/yagi/internal/database"
 	ihttp "github.com/zielma/yagi/internal/http"
+	"github.com/zielma/yagi/internal/jobs"
 	"github.com/zielma/yagi/internal/router"
 	"github.com/zielma/yagi/internal/scheduler"
 	"github.com/zielma/yagi/internal/ynab"
@@ -88,6 +89,11 @@ func main() {
 		slog.Error("failed to create scheduler", slog.Any("error", err))
 		os.Exit(1)
 	}
+
+	s.AddJobHandler(jobs.NewFetchBudgetsJob(
+		db,
+		ynab.NewClient(config),
+	))
 
 	// Load jobs from the database
 	if err = s.Load(); err != nil {

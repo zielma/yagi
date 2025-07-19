@@ -82,7 +82,7 @@ func TestFetchBudgets(t *testing.T) {
 
 	// Create and run the job
 	job := NewFetchBudgetsJob(mockStore, mockClient)
-	if err := job.Run(); err != nil {
+	if err := job.Execute(context.Background(), nil); err != nil {
 		t.Errorf("fetchBudgets returned an error: %v", err)
 	}
 

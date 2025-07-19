@@ -44,7 +44,19 @@ func NewFetchBudgetsJob(store BudgetStore, client YNABClient) *fetchBudgetsJob {
 	}
 }
 
-func (j *fetchBudgetsJob) Run() error {
+func (j *fetchBudgetsJob) Name() string {
+	return "fetchBudgets"
+}
+
+func (j *fetchBudgetsJob) ValidateParams(params []any) error {
+	if len(params) > 0 {
+		return fmt.Errorf("fetchBudgets job does not accept parameters, got %d", len(params))
+	}
+	return nil
+}
+
+// That job only fetched budgets and accounts from YNAB API
+func (j *fetchBudgetsJob) Execute(ctx context.Context, params ...any) error {
 	slog.Debug("starting fetch budgets job...")
 
 	// Fetch budgets and accounts from YNAB API
